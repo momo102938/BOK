@@ -1,0 +1,8 @@
+{
+  "name": "kokkok-api",
+  "main": "index.ts",
+  "compatibility_date": "2026-05-15",
+  "workers_dev": true,
+  "r2_buckets": [{"binding": "BUCKET", "bucket_name": "kokkok-games"}],
+  "vars": {"ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:4173,https://YOUR_GITHUB_USERNAME.github.io"}
+}

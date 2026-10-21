@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+const ctx={exports:{}};vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/dialogue.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText,ctx);
+const {chooseDialogue,formatName}=ctx.exports;
+test('구간 경계와 빈 구간의 기본 대사',()=>{const d={text:'기본',dialogues:{low:'낮음',mid:'중간',high:'높음'}};for(const [n,want] of [[0,'낮음'],[29,'낮음'],[30,'중간'],[69,'중간'],[70,'높음'],[100,'높음']])assert.equal(chooseDialogue(d,n),want);assert.equal(chooseDialogue({text:'기본',dialogues:{mid:' \n '}},40),'기본')});
+test('중복·빈 줄 제거와 직전 대사 제외',()=>{const d={text:'하나\n둘\n하나\n '};assert.equal(chooseDialogue(d,0,'하나',()=>0),'둘');assert.equal(chooseDialogue({text:'하나'},0,'하나'),'하나');assert.equal(chooseDialogue({text:''},0),'…')});
+test('이름을 리터럴로 치환하고 빈 이름은 친구',()=>{assert.equal(formatName('{name}, {name}!', '$&'),'$&, $&!');assert.equal(formatName('{name}!', '  '),'친구!')});

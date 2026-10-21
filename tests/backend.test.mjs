@@ -1,0 +1,17 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+import ts from 'typescript';
+const compile=(file,require)=>{const context={exports:{},require,Request,Response,Headers,URL,crypto};vm.runInNewContext(ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,context);return context.exports};
+const games=compile('backend/games.ts',()=>{throw Error('unexpected dependency')});
+const worker=compile('backend/index.ts',()=>games).default;
+const origin='https://example.github.io';
+const store=new Map();const env={ALLOWED_ORIGINS:origin,BUCKET:{put:async(k,v)=>store.set(k,v),get:async k=>store.has(k)?{body:store.get(k)}:null}};
+const sample=()=>({title:'캐릭터',image:'data:image/png;base64,AA==',expressions:{happy:'data:image/png;base64,BB==',sad:'data:image/png;base64,CC==',angry:'data:image/png;base64,DD=='},zones:[{name:'머리',text:'안녕!',x:50,y:20,w:20,h:20,emotion:'sad',unlockAt:0,affinity:3}]});
+const send=d=>worker.fetch(new Request('https://api.example/api/games',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify(d)}),env);
+test('브라우저 사전 요청에 올바른 출처를 허용한다',async()=>{const r=await worker.fetch(new Request('https://api.example/api/games',{method:'OPTIONS',headers:{Origin:origin}}),env);assert.equal(r.status,204);assert.equal(r.headers.get('Access-Control-Allow-Origin'),origin)});
+test('설정·기쁨/부끄/화남 이미지·호감도 조건을 공유 저장하고 다시 읽는다',async()=>{const d=sample(),r=await send(d);assert.equal(r.status,200);const {id}=await r.json();const loaded=await worker.fetch(new Request('https://api.example/api/games?id='+id,{headers:{Origin:origin}}),env);assert.deepEqual(await loaded.json(),d);assert.equal(loaded.headers.get('Access-Control-Allow-Origin'),origin)});
+test('허용되지 않은 출처와 잘못된 호감도 조건을 거절한다',async()=>{assert.equal((await worker.fetch(new Request('https://api.example/api/games',{headers:{Origin:'https://other.example'}}),env)).status,403);const d=sample();d.zones[0].unlockAt=101;assert.equal((await send(d)).status,400)});
+test('이미지가 아닌 표정 주소를 거절한다',async()=>{const d=sample();d.expressions.sad='javascript:alert(1)';assert.equal((await send(d)).status,400)});
+test('당황·곤란 표정과 구간별 대사를 저장한다',async()=>{const d=sample();d.expressions.surprised='data:image/png;base64,AA==';d.expressions.troubled='data:image/png;base64,AA==';d.zones[0].emotion='troubled';d.zones[0].dialogues={low:'{name}, 안녕!\n반가워!',mid:'친해졌네',high:'또 왔구나!'};const r=await send(d);assert.equal(r.status,200);const {id}=await r.json();assert.deepEqual(JSON.parse(store.get('games/'+id)),d);d.zones[0].dialogues.low='x'.repeat(2001);assert.equal((await send(d)).status,400)});
