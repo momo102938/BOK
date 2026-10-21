@@ -14,9 +14,7 @@ GitHub에 업로드할 수 있는 소스와 **GitHub Pages용 완성 파일(`doc
 5. **Settings → Pages → Build and deployment**에서 Source를 **Deploy from a branch**로 선택합니다.
 6. Branch는 **main**, 폴더는 **/docs**로 고르고 **Save**를 누릅니다.
 7. 배포가 끝나면 Pages 설정에 실제 사이트 주소가 표시됩니다. 보통 `https://아이디.github.io/저장소이름/` 형태입니다.
-
-**주소에 chatgpt는 들어가지 않습니다.** `.github` 설정이나 별도 Actions 워크플로는 필요 없습니다.
-GitHub Pages 공개 저장소의 무료 제공 범위 안에서 사용할 수 있습니다.
+   
 
 ### 바로 가능한 것 / 서버 연결이 필요한 것
 
